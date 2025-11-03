@@ -165,31 +165,13 @@ if __name__ == "__main__":
 # Imported from live_face_chat.py
 """
 live_face_chat.py
-
-A single-file face-analysis conversational assistant ("Gini") that:
-- Uses MediaPipe Face Mesh for accurate face landmark detection (no API keys).
-- Computes eyeball size difference, eyebrow lengths, forehead length, and other facial structure ratios.
-- Provides sequential conversation flow (no background/chat looping). The assistant speaks (TTS) and listens (STT) for consent and replies.
-- Asks explicit privacy consent before analyzing and again before saving any data for future use.
-- Handles multiple faces detected in front of the camera and asks consent for each person.
-- Optionally uses a Hugging Face Wav2Vec2 ASR model *if available locally* (no API key needed). If not available, it falls back to the SpeechRecognition Google recognizer (requires internet but no API key) or a simple keyboard input as a backup.
-
 INSTALL (example):
     pip install opencv-python mediapipe numpy pyttsx3 sounddevice soundfile transformers torch torchvision torchaudio SpeechRecognition pyaudio
-
-Notes:
-- MediaPipe provides robust facial landmarks and is the main contributor to accuracy improvements.
-- Hugging Face local model: set HF_STT_MODEL env var to a local or huggingface repo id if you want to use Wav2Vec2 for speech-to-text. The code will try to load it if torch & transformers are installed and the model is available locally/cached.
-- Run on your machine; large HF models require disk and memory.
-
 Usage:
     python live_face_chat.py
-
 Press 'a' to analyze the current camera frame (sequential step triggered by user).
 Press 'q' to quit.
-
 """
-
 import os
 import cv2
 import json
@@ -200,14 +182,12 @@ import threading
 import numpy as np
 from pathlib import Path
 
-# TTS (offline)
 try:
     import pyttsx3
     _TTS_AVAILABLE = True
 except Exception:
     _TTS_AVAILABLE = False
 
-# STT optional: try Hugging Face Wav2Vec2 locally
 _HF_ASR_AVAILABLE = False
 try:
     from transformers import Wav2Vec2ForCTC, Wav2Vec2Processor
@@ -217,14 +197,12 @@ try:
 except Exception:
     _HF_ASR_AVAILABLE = False
 
-# Fallback STT via SpeechRecognition (uses Google by default without API key)
 try:
     import speech_recognition as sr
     _SR_AVAILABLE = True
 except Exception:
     _SR_AVAILABLE = False
 
-# MediaPipe face mesh
 try:
     import mediapipe as mp
     _MP_AVAILABLE = True
@@ -232,7 +210,6 @@ except Exception:
     _MP_AVAILABLE = False
 
 
-# ------------------------- Helper classes -------------------------
 class TTS:
     def __init__(self):
         if not _TTS_AVAILABLE:
@@ -240,7 +217,6 @@ class TTS:
             self.engine = None
         else:
             self.engine = pyttsx3.init()
-            # tweak voice rate gently
             try:
                 rate = self.engine.getProperty('rate')
                 self.engine.setProperty('rate', max(120, rate - 10))
@@ -294,7 +270,6 @@ class STT:
         return transcription.lower()
 
     def listen_and_transcribe(self, timeout=6, phrase_time_limit=6, wav_output='/tmp/_gini_record.wav'):
-        # First try Hugging Face if available: record with sounddevice to a file then transcribe
         try:
             import sounddevice as sd
             import soundfile as sf
@@ -302,7 +277,7 @@ class STT:
             sd = None
 
         if self.use_hf and sd is not None:
-            # record audio from microphone for phrase_time_limit seconds
+
             try:
                 samplerate = 16000
                 duration = phrase_time_limit
@@ -314,8 +289,6 @@ class STT:
                 return txt
             except Exception as e:
                 print("HF recording/transcription error:", e)
-
-        # Next fallback: SpeechRecognition with microphone (Google recognizer)
         if self.sr is not None:
             try:
                 with sr.Microphone() as source:
@@ -325,8 +298,6 @@ class STT:
                 return text
             except Exception as e:
                 print("SpeechRecognition error:", e)
-
-        # Final fallback: keyboard input
         print("Please type response (fallback): ")
         return input('> ').strip().lower()
 
@@ -457,7 +428,6 @@ def main():
         if key == ord('q'):
             break
         if key == ord('a'):
-            # Perform one-step analysis (sequential)
             rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             if not analyzer:
                 tts.speak('Face analysis is not available on this machine.')
@@ -466,8 +436,6 @@ def main():
             if not analyses:
                 tts.speak('I could not detect any faces. Please ensure faces are visible to the camera.')
                 continue
-
-            # For each face detected, ask consent and analyze sequentially
             for i, a in enumerate(analyses):
                 tts.speak(f'I detected person number {i+1}. Do I have permission to analyze their face? Please say yes or no.')
                 ans = stt.listen_and_transcribe()
@@ -475,7 +443,6 @@ def main():
                     tts.speak('Consent not granted. Skipping this person.')
                     continue
 
-                # Summarize findings in simple language
                 eye_diff_pct = a['eye_size_diff_norm'] * 100
                 eyebrow_diff_pct = a['eyebrow_diff_norm'] * 100
                 forehead = a['forehead_height_norm']
@@ -490,8 +457,6 @@ def main():
                     f'Face aspect ratio (width/height) is {aspect:.2f}.'
                 )
                 tts.speak(speak_txt)
-
-                # Ask to save
                 tts.speak('Would you like me to save this analysis for future reference? Please say yes or no.')
                 save_ans = stt.listen_and_transcribe()
                 if save_ans and 'yes' in save_ans:
@@ -517,14 +482,7 @@ def main():
 if __name__ == '__main__':
     main()
 
-
-# Note:
-# Live Face Chat is triggered via voice command "Start live chat".
-# It replaces the previous face/camera logic for a more flexible real-time output.
-
-
-
-# === Memory System (Added Feature) ===
+# === Memory System  ===
 import json
 
 MEMORY_FILE = "memory.json"
@@ -570,4 +528,3 @@ def handle_command(command):
     save_memory(memory_data)
     if remember_info(command):
         return
-    # Existing command logic continues here...
