@@ -7,8 +7,8 @@ brew install portaudio ffmpeg
 pip3 install opencv-python numpy pyttsx3 SpeechRecognition pyaudio pywhatkit wikipedia pyjokes playsound requests beautifulsoup4 lxml feedparser psutil
 
  Run it :
-cd ~/Desktop/Gini\ Voice\ Assistant
-python3 super_assistant.py
+cd ~/Desktop/Gini_Voice_Assistant
+python3 super_assistant_memory.py
 
  Usage :
 1]Say: “Hey Gini” — to wake it up
@@ -18,6 +18,7 @@ python3 super_assistant.py
 5]Say: “Play music” — for instant music playback
 6]Say: “Send WhatsApp message” — to send a voice-commanded message
 7]Say: “What’s the latest news?” — for live headlines
+8]say: "Remember i love to watching Movies" - for memory 
 
 Key Features :
 1] Real-Time Voice Chat — Talk naturally without pausing; Gini listens and replies instantly.
@@ -32,6 +33,7 @@ Key Features :
 10] Send WhatsApp Messages — Send messages or open WhatsApp by voice command.
 11]Email Assistant — Compose and send emails with just your voice.
 12]No API Keys Needed — Works fully offline for most features.
+13]Memory reminder
 
 Tech Stack :
 1]Python 3.13.7 (Homebrew)
